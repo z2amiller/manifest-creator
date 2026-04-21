@@ -70,13 +70,18 @@ def export_footprint_svgs(
             seen[fp_id] = True
 
     result: Dict[str, Dict] = {}
+    unique_ids = sorted(seen.keys())
+    _log("Exporting SVGs for {} unique footprint types ({} total placements)".format(
+        len(unique_ids), len(fp_dicts)
+    ))
 
-    for fp_id in sorted(seen.keys()):
+    for idx, fp_id in enumerate(unique_ids, 1):
         if ":" not in fp_id:
             _log("WARNING: unparseable footprint_id {!r}, skipping SVG export".format(fp_id))
             continue
 
         lib_nickname, fp_name = fp_id.split(":", 1)
+        _log("[{}/{}] {}".format(idx, len(unique_ids), fp_id))
         lib_path = resolve_fp_library(lib_nickname, board_path=board_path)
 
         if lib_path is None:
@@ -157,6 +162,6 @@ def export_footprint_svgs(
                 "anchor_x": anchor_x,
                 "anchor_y": anchor_y,
             }
-            _log("Footprint SVG exported: {}".format(fp_id))
+            _log("  → ok (anchor {}, {})".format(anchor_x, anchor_y))
 
     return result
