@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import pathlib
 import re
@@ -140,7 +141,6 @@ def create_manifest_zip(
         bbox_offsets: Dict[str, tuple] = {}
         if adapter is not None:
             try:
-                import math as _math
                 seen_fp_ids: set = set()
                 for fp_data in adapter.get_footprints():
                     fp_id = fp_data.footprint_id
@@ -149,10 +149,10 @@ def create_manifest_zip(
                     seen_fp_ids.add(fp_id)
                     bbox_center = adapter.get_item_bounding_box(fp_data)
                     if bbox_center is not None:
-                        rot = _math.radians(fp_data.rotation)
+                        rot = math.radians(fp_data.rotation)
                         dx, dy = bbox_center.cx_mm, bbox_center.cy_mm
-                        cx_local = dx * _math.cos(rot) - dy * _math.sin(rot)
-                        cy_local = dx * _math.sin(rot) + dy * _math.cos(rot)
+                        cx_local = dx * math.cos(rot) - dy * math.sin(rot)
+                        cy_local = dx * math.sin(rot) + dy * math.cos(rot)
                         bbox_offsets[fp_id] = (cx_local, cy_local)
             except Exception as exc:
                 _log("WARNING: could not compute bbox offsets: {}".format(exc))

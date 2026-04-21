@@ -59,7 +59,8 @@ def export_all_layers(
         for logical_name, abs_path in drill_svgs.items():
             rel = "svg/drills/{}".format(pathlib.Path(abs_path).name)
             result[logical_name] = rel
-    except RuntimeError:
-        pass  # drill export is best-effort
+    except RuntimeError as exc:
+        if log is not None:
+            log("WARNING: drill map export skipped: {}".format(exc))
 
     return result
