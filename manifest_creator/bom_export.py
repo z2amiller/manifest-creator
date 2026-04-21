@@ -33,8 +33,12 @@ def export_bom(board) -> List[Dict]:
 
     result: List[Dict] = []
     for fp_dict in fp_dicts:
-        if fp_dict["dnp"] or fp_dict["exclude_from_bom"]:
+        # DNP components are physically absent — exclude entirely.
+        if fp_dict["dnp"]:
             continue
+        # exclude_from_bom components are pre-installed (panel-mount, bulk-ordered,
+        # etc.).  Include them but flag as installed=True so the overlay renders
+        # them in a non-interactive "pre-installed" style.
 
         ref = fp_dict["ref"]
         fp_obj = fp_by_ref.get(ref)
@@ -44,21 +48,22 @@ def export_bom(board) -> List[Dict]:
         else:
             bbox_dict = {"w": 5.0, "h": 5.0}
 
-        result.append(
-            {
-                "ref": ref,
-                "value": fp_dict["value"],
-                "footprint": fp_dict["footprint_id"],
-                "description": "",
-                "notes": "",
-                "layer": fp_dict["layer"],
-                "pos_x": fp_dict["pos_x"],
-                "pos_y": fp_dict["pos_y"],
-                "rotation": fp_dict["rotation"],
-                "do_not_populate": fp_dict["dnp"],
-                "exclude_from_bom": fp_dict["exclude_from_bom"],
-                "outline": {"type": "bbox", "bbox": bbox_dict},
-            }
-        )
+        entry: Dict = {
+            "ref": ref,
+            "value": fp_dict["value"],
+            "footprint": fp_dict["footprint_id"],
+            "description": "",
+            "notes": "",
+            "layer": fp_dict["layer"],
+            "pos_x": fp_dict["pos_x"],
+            "pos_y": fp_dict["pos_y"],
+            "rotation": fp_dict["rotation"],
+            "do_not_populate": fp_dict["dnp"],
+            "exclude_from_bom": fp_dict["exclude_from_bom"],
+            "outline": {"type": "bbox", "bbox": bbox_dict},
+        }
+        if fp_dict["exclude_from_bom"]:
+            entry["installed"] = True
+        result.append(entry)
 
     return result

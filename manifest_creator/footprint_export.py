@@ -29,10 +29,9 @@ def export_footprint_geometries(board) -> List[Dict]:
 
     result: List[Dict] = []
     for fp_dict in fp_dicts:
-        # Only front layer, and not excluded from BOM
+        # Only front layer; all non-DNP footprints (including exclude_from_bom)
+        # get geometry exported so pre-installed components appear on the overlay.
         if fp_dict["layer"] != "F":
-            continue
-        if fp_dict["exclude_from_bom"]:
             continue
 
         ref = fp_dict["ref"]
