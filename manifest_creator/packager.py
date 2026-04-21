@@ -115,6 +115,15 @@ def create_manifest_zip(
     if display_name is None:
         display_name = board_stem
 
+    # Look for blurb.md next to the .kicad_pcb (exact stem match, then fallback names).
+    _board_dir = pathlib.Path(board_path).parent
+    _blurb_candidates = [
+        _board_dir / (board_stem + ".md"),
+        _board_dir / "blurb.md",
+        _board_dir / "README.md",
+    ]
+    blurb_path = next((p for p in _blurb_candidates if p.exists()), None)
+
     _log("Exporting SVG layers…")
     with tempfile.TemporaryDirectory() as tmp_dir:
         layers_map: Dict[str, str] = export_all_layers(
@@ -269,6 +278,7 @@ def create_manifest_zip(
             "board_bounds": board_bounds,
             "layers": layers_map,
             "components": components,
+            "has_blurb": blurb_path is not None,
         }
 
         _log("Validating manifest against schema…")
@@ -297,6 +307,10 @@ def create_manifest_zip(
                         svg_file = pathlib.Path(tmp_dir) / zip_path
                         if svg_file.exists():
                             zf.write(svg_file, zip_path)
+
+            if blurb_path is not None:
+                zf.write(blurb_path, "blurb.md")
+                _log("Bundled blurb: {}".format(blurb_path.name))
 
     _log("Done: {}".format(output_path))
     return output_path
