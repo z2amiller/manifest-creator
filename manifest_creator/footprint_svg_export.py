@@ -29,6 +29,7 @@ def export_footprint_svgs(
     kicad_cli: Optional[str] = None,
     log: Optional[Callable] = None,
     bbox_offsets: Optional[Dict[str, Tuple[float, float]]] = None,
+    adapter=None,
 ) -> Dict[str, Dict]:
     """Export overlay, courtyard, and fab SVGs for each unique footprint type.
 
@@ -50,7 +51,16 @@ def export_footprint_svgs(
         if log is not None:
             log(msg)
 
-    fp_dicts = get_footprints(board)
+    if adapter is not None:
+        fp_dicts = [
+            {
+                "footprint_id": fp.footprint_id,
+                "layer": fp.layer,
+            }
+            for fp in adapter.get_footprints()
+        ]
+    else:
+        fp_dicts = get_footprints(board)
 
     # Collect unique footprint IDs (skip empties and back-layer footprints).
     seen: Dict[str, bool] = {}

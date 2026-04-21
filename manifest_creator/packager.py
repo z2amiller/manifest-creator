@@ -182,6 +182,7 @@ def create_manifest_zip(
                 fp_svgs = export_footprint_svgs(
                     board, board_path, tmp_dir, kicad_cli=kicad_cli, log=log,
                     bbox_offsets=bbox_offsets if bbox_offsets else None,
+                    adapter=adapter,
                 )
             except Exception as exc:
                 _log("WARNING: footprint SVG export failed: {}".format(exc))
