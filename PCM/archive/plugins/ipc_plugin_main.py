@@ -12,6 +12,17 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+# kicad_pedal_common is vendored alongside this plugin (PCM bundle adds it to
+# sys.path via the plugin_dir prepend below), so the import resolves at
+# runtime even without an editable install.
+_watchdog_available = False
+try:
+    from kicad_pedal_common.ipc_watchdog import start_kicad_watchdog
+
+    _watchdog_available = True
+except ImportError:
+    logger.debug("kicad_pedal_common not available; KiCad watchdog disabled")
+
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO)
@@ -109,6 +120,13 @@ def main() -> int:
     log_dlg = LogDialog(None, title="Manifest Export Log")
     for line in log_lines:
         log_dlg._append_and_scroll(line)
+
+    if _watchdog_available:
+        start_kicad_watchdog(
+            kicad,
+            on_exit=lambda: wx.CallAfter(log_dlg.EndModal, wx.ID_CANCEL),
+        )
+
     log_dlg.ShowModal()
     log_dlg.Destroy()
 
