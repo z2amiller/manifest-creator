@@ -131,7 +131,10 @@ class TestExportBom:
         assert "R2" not in refs
         assert len(result) == 1
 
-    def test_exclude_from_bom_components_are_omitted(self):
+    def test_exclude_from_bom_included_as_installed(self):
+        # exclude_from_bom components (e.g. pre-installed panel-mount parts)
+        # are included in the manifest with installed=True so the overlay can
+        # render them as non-interactive.
         fps = [
             _make_fp("R1", "10K"),
             _make_fp("R3", "PWR", exclude_from_bom=True),
@@ -140,10 +143,13 @@ class TestExportBom:
         result = export_bom(board)
         refs = [e["ref"] for e in result]
         assert "R1" in refs
-        assert "R3" not in refs
-        assert len(result) == 1
+        assert "R3" in refs
+        r3 = next(e for e in result if e["ref"] == "R3")
+        assert r3.get("installed") is True
 
-    def test_dnp_and_exclude_from_bom_both_omitted(self):
+    def test_dnp_omitted_but_exclude_from_bom_included(self):
+        # DNP components are physically absent and excluded entirely.
+        # exclude_from_bom components are pre-installed and included with installed=True.
         fps = [
             _make_fp("R1", "10K"),
             _make_fp("R2", "DNP", dnp=True),
@@ -153,8 +159,12 @@ class TestExportBom:
         board = _make_board(fps)
         result = export_bom(board)
         refs = [e["ref"] for e in result]
-        assert refs == ["R1", "C1"]
-        assert len(result) == 2
+        assert "R2" not in refs
+        assert "R1" in refs
+        assert "R3" in refs
+        assert "C1" in refs
+        r3 = next(e for e in result if e["ref"] == "R3")
+        assert r3.get("installed") is True
 
     def test_empty_board_returns_empty_list(self):
         board = _make_board([])

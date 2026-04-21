@@ -57,7 +57,9 @@ class TestExportFootprintGeometries:
         assert "R1" in refs
         assert "R2" not in refs
 
-    def test_excluded_from_bom_filtered_out(self):
+    def test_excluded_from_bom_included_for_overlay(self):
+        # exclude_from_bom footprints are pre-installed; they should appear in
+        # the geometry export so the overlay can render them non-interactively.
         fps = [
             _make_fp("R1", exclude_from_bom=False),
             _make_fp("R2", exclude_from_bom=True),
@@ -67,7 +69,7 @@ class TestExportFootprintGeometries:
 
         refs = [e["ref"] for e in result]
         assert "R1" in refs
-        assert "R2" not in refs
+        assert "R2" in refs
 
     def test_outline_present_and_correct_type(self):
         fps = [_make_fp("R1", bbox_w_nm=4_000_000, bbox_h_nm=3_000_000)]

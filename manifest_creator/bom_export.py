@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from kicad_pedal_common.footprint import get_bounding_box, get_footprints
 
@@ -13,7 +13,7 @@ def export_bom(board) -> List[Dict]:
 
     Calls get_footprints() from kicad_pedal_common.footprint, enriches each
     entry with a bounding-box outline, and returns the full list.
-    Components with dnp=True or exclude_from_bom=True are omitted.
+    Components with dnp=True are omitted; exclude_from_bom get installed=True.
     """
     fp_dicts = get_footprints(board)
 
@@ -33,20 +33,12 @@ def export_bom(board) -> List[Dict]:
 
     result: List[Dict] = []
     for fp_dict in fp_dicts:
-        # DNP components are physically absent — exclude entirely.
         if fp_dict["dnp"]:
             continue
-        # exclude_from_bom components are pre-installed (panel-mount, bulk-ordered,
-        # etc.).  Include them but flag as installed=True so the overlay renders
-        # them in a non-interactive "pre-installed" style.
 
         ref = fp_dict["ref"]
         fp_obj = fp_by_ref.get(ref)
-
-        if fp_obj is not None:
-            bbox_dict = get_bounding_box(fp_obj)
-        else:
-            bbox_dict = {"w": 5.0, "h": 5.0}
+        bbox_dict = get_bounding_box(fp_obj) if fp_obj is not None else {"w": 5.0, "h": 5.0}
 
         entry: Dict = {
             "ref": ref,
@@ -63,6 +55,49 @@ def export_bom(board) -> List[Dict]:
             "outline": {"type": "bbox", "bbox": bbox_dict},
         }
         if fp_dict["exclude_from_bom"]:
+            entry["installed"] = True
+        result.append(entry)
+
+    return result
+
+
+def export_bom_from_adapter(adapter) -> List[Dict]:
+    """Like export_bom but accepts a BoardAdapter instead of a raw kipy board.
+
+    Used by the standalone CLI (KiutilsBoardAdapter) and any caller that already
+    has a BoardAdapter instance.
+    """
+    fp_list = adapter.get_footprints()
+
+    # Use adapter's bounding-box size method when available; fall back to 5×5.
+    def _bbox(fp_data) -> Dict[str, float]:
+        if hasattr(adapter, "get_bounding_box_size"):
+            return adapter.get_bounding_box_size(fp_data)
+        return {"w": 5.0, "h": 5.0}
+
+    result: List[Dict] = []
+    for fp_data in fp_list:
+        if fp_data.dnp:
+            continue
+        if fp_data.layer != "F":
+            continue
+
+        bbox_dict = _bbox(fp_data)
+        entry: Dict = {
+            "ref": fp_data.ref,
+            "value": fp_data.value,
+            "footprint": fp_data.footprint_id,
+            "description": "",
+            "notes": "",
+            "layer": fp_data.layer,
+            "pos_x": fp_data.pos_x,
+            "pos_y": fp_data.pos_y,
+            "rotation": fp_data.rotation,
+            "do_not_populate": fp_data.dnp,
+            "exclude_from_bom": fp_data.exclude_from_bom,
+            "outline": {"type": "bbox", "bbox": bbox_dict},
+        }
+        if fp_data.exclude_from_bom:
             entry["installed"] = True
         result.append(entry)
 

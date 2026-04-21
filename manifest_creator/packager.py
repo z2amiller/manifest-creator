@@ -15,7 +15,7 @@ import jsonschema
 import jsonschema.exceptions
 from referencing import Registry, Resource
 
-from manifest_creator.bom_export import export_bom
+from manifest_creator.bom_export import export_bom, export_bom_from_adapter
 from manifest_creator.footprint_svg_export import export_footprint_svgs
 from manifest_creator.svg_export import export_all_layers
 
@@ -70,14 +70,17 @@ def create_manifest_zip(
     display_name: Optional[str] = None,
     kicad_cli: Optional[str] = None,
     log: Optional[Callable] = None,
+    adapter=None,
 ) -> str:
     """Build a .manifest.zip from a KiCad board.
 
     Parameters
     ----------
     board:
-        kipy board object.  Pass None to skip BOM/footprint export (SVG-only
-        mode used by the CLI).
+        kipy board object.  Pass None to use *adapter* or for SVG-only mode.
+    adapter:
+        BoardAdapter instance (e.g. KiutilsBoardAdapter) for headless export.
+        Takes precedence over *board* when provided.
     board_path:
         Absolute path to the .kicad_pcb file on disk.
     output_path:
@@ -121,17 +124,41 @@ def create_manifest_zip(
         )
 
         _log("Exporting BOM…")
-        if board is not None:
-            components: List[Dict] = export_bom(board)
+        # adapter kwarg is used by the standalone CLI (KiutilsBoardAdapter).
+        # The IPC plugin always passes board= and leaves adapter=None so that
+        # the existing export_bom(board) path — which uses kipy bounding boxes —
+        # is preserved unchanged.
+        if adapter is not None:
+            components: List[Dict] = export_bom_from_adapter(adapter)
+        elif board is not None:
+            components = export_bom(board)
         else:
             components = []
 
         # Compute bounding-box centre offsets per footprint type so the SVG
         # exporter can calculate accurate anchor positions.
         bbox_offsets: Dict[str, tuple] = {}
-        if board is not None:
+        if adapter is not None:
             try:
+                import math as _math
                 seen_fp_ids: set = set()
+                for fp_data in adapter.get_footprints():
+                    fp_id = fp_data.footprint_id
+                    if not fp_id or fp_id in seen_fp_ids:
+                        continue
+                    seen_fp_ids.add(fp_id)
+                    bbox_center = adapter.get_item_bounding_box(fp_data)
+                    if bbox_center is not None:
+                        rot = _math.radians(fp_data.rotation)
+                        dx, dy = bbox_center.cx_mm, bbox_center.cy_mm
+                        cx_local = dx * _math.cos(rot) - dy * _math.sin(rot)
+                        cy_local = dx * _math.sin(rot) + dy * _math.cos(rot)
+                        bbox_offsets[fp_id] = (cx_local, cy_local)
+            except Exception as exc:
+                _log("WARNING: could not compute bbox offsets: {}".format(exc))
+        elif board is not None:
+            try:
+                seen_fp_ids = set()
                 for fp in board.get_footprints():
                     try:
                         fp_id = "{}:{}".format(
@@ -150,7 +177,7 @@ def create_manifest_zip(
 
         _log("Exporting footprint SVGs…")
         fp_svgs: Dict[str, Dict] = {}
-        if board is not None:
+        if board is not None or adapter is not None:
             try:
                 fp_svgs = export_footprint_svgs(
                     board, board_path, tmp_dir, kicad_cli=kicad_cli, log=log,

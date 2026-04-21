@@ -3,9 +3,9 @@
 Usage:
     python -m manifest_creator --board foo.kicad_pcb --out foo.manifest.zip --version 1.0.0
 
-Note: CLI mode produces a manifest with SVG layers only (no BOM/components).
-BOM and footprint geometry require a live kipy board object and are only
-available when manifest_creator is invoked from within KiCad via the IPC plugin.
+When kiutils is installed (pip install kiutils), full BOM and footprint geometry
+are exported from the .kicad_pcb file directly — no live KiCad session required.
+Without kiutils, only SVG layers are exported.
 """
 
 from __future__ import annotations
@@ -59,6 +59,17 @@ def main(argv=None):
     def _log(msg: str) -> None:
         print(msg, file=sys.stderr)
 
+    # Use KiutilsBoardAdapter for full headless export when kiutils is available.
+    _adapter = None
+    try:
+        from kicad_pedal_common.kiutils_board_adapter import KiutilsBoardAdapter
+        _adapter = KiutilsBoardAdapter(args.board)
+        _log("Using kiutils adapter for full BOM export")
+    except ImportError:
+        _log("kiutils not available — exporting SVG layers only")
+    except Exception as exc:
+        _log("WARNING: kiutils adapter failed ({}); SVG-only mode".format(exc))
+
     try:
         out = create_manifest_zip(
             board=None,
@@ -68,6 +79,7 @@ def main(argv=None):
             display_name=args.display_name,
             kicad_cli=args.kicad_cli,
             log=_log,
+            adapter=_adapter,
         )
         print(out)
     except Exception as exc:
