@@ -59,8 +59,9 @@ class TestExportBom:
         board = _make_board(fps)
         result = export_bom(board)
 
+        # DNP component is omitted; only the two normal components are returned
         assert isinstance(result, list)
-        assert len(result) == 3
+        assert len(result) == 2
 
     def test_each_dict_has_required_keys(self):
         fps = [_make_fp("R1", "10K")]
@@ -108,29 +109,52 @@ class TestExportBom:
         assert abs(outline["bbox"]["w"] - 6.0) < 0.001
         assert abs(outline["bbox"]["h"] - 4.0) < 0.001
 
-    def test_dnp_component_flagged(self):
+    def test_non_dnp_component_not_flagged(self):
         fps = [
             _make_fp("R1", "10K", dnp=False),
-            _make_fp("Q1", "BC547", dnp=True),
         ]
         board = _make_board(fps)
         result = export_bom(board)
 
         r1 = next(e for e in result if e["ref"] == "R1")
-        q1 = next(e for e in result if e["ref"] == "Q1")
         assert r1["do_not_populate"] is False
-        assert q1["do_not_populate"] is True
 
-    def test_dnp_and_excluded_components_still_included(self):
+    def test_dnp_components_are_omitted(self):
         fps = [
             _make_fp("R1", "10K"),
             _make_fp("R2", "DNP", dnp=True),
+        ]
+        board = _make_board(fps)
+        result = export_bom(board)
+        refs = [e["ref"] for e in result]
+        assert "R1" in refs
+        assert "R2" not in refs
+        assert len(result) == 1
+
+    def test_exclude_from_bom_components_are_omitted(self):
+        fps = [
+            _make_fp("R1", "10K"),
             _make_fp("R3", "PWR", exclude_from_bom=True),
         ]
         board = _make_board(fps)
         result = export_bom(board)
-        # All three should be present
-        assert len(result) == 3
+        refs = [e["ref"] for e in result]
+        assert "R1" in refs
+        assert "R3" not in refs
+        assert len(result) == 1
+
+    def test_dnp_and_exclude_from_bom_both_omitted(self):
+        fps = [
+            _make_fp("R1", "10K"),
+            _make_fp("R2", "DNP", dnp=True),
+            _make_fp("R3", "PWR", exclude_from_bom=True),
+            _make_fp("C1", "100nF"),
+        ]
+        board = _make_board(fps)
+        result = export_bom(board)
+        refs = [e["ref"] for e in result]
+        assert refs == ["R1", "C1"]
+        assert len(result) == 2
 
     def test_empty_board_returns_empty_list(self):
         board = _make_board([])

@@ -13,7 +13,7 @@ def export_bom(board) -> List[Dict]:
 
     Calls get_footprints() from kicad_pedal_common.footprint, enriches each
     entry with a bounding-box outline, and returns the full list.
-    DNP and exclude_from_bom components ARE included (flagged).
+    Components with dnp=True or exclude_from_bom=True are omitted.
     """
     fp_dicts = get_footprints(board)
 
@@ -33,6 +33,9 @@ def export_bom(board) -> List[Dict]:
 
     result: List[Dict] = []
     for fp_dict in fp_dicts:
+        if fp_dict["dnp"] or fp_dict["exclude_from_bom"]:
+            continue
+
         ref = fp_dict["ref"]
         fp_obj = fp_by_ref.get(ref)
 
