@@ -287,27 +287,6 @@ def create_manifest_zip(
             except Exception as exc:
                 _log("WARNING: drill hole extraction failed: {}".format(exc))
 
-        # Enclosure control holes — only footprints that poke through the
-        # enclosure face, using per-project panel_config.json + defaults.
-        enclosure_holes: list = []
-        if adapter is not None:
-            try:
-                from kicad_pedal_common.enclosure import load_fp_config, get_control_holes
-                _board_dir = str(pathlib.Path(board_path).parent)
-                fp_config = load_fp_config(_board_dir)
-                board_origin = (pcb_min_x, pcb_min_y)
-                raw_enc = get_control_holes(adapter, fp_config, board_origin)
-                for h in raw_enc:
-                    enclosure_holes.append({
-                        "x_mm": h.x_mm,
-                        "y_mm": h.y_mm,
-                        "diameter_mm": h.diameter_mm,
-                        "label": h.label,
-                    })
-                _log("Collected {} enclosure control holes.".format(len(enclosure_holes)))
-            except Exception as exc:
-                _log("WARNING: enclosure hole extraction failed: {}".format(exc))
-
         manifest: Dict = {
             "schema_version": "1.0",
             "board_name": board_name,
@@ -319,7 +298,6 @@ def create_manifest_zip(
             "components": components,
             "has_blurb": blurb_path is not None,
             "drill_holes": drill_holes,
-            "enclosure_holes": enclosure_holes,
         }
 
         _log("Validating manifest against schema…")
