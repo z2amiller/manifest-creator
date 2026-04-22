@@ -16,7 +16,7 @@ jobs:
       - name: Check out kicad-pedal-common
         uses: actions/checkout@v4
         with:
-          repository: andrewmiller/kicad-pedal-common  # TODO: update org/repo
+          repository: z2amiller/kicad-pedal-common
           path: kicad-pedal-common
       - name: Vendor kicad-pedal-common
         run: kicad-pedal-common/scripts/vendor.sh .

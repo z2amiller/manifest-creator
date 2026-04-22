@@ -12,11 +12,21 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: manifest-creator
+
+      - uses: actions/checkout@v4
+        with:
+          repository: z2amiller/kicad-pedal-common
+          path: kicad-pedal-common
+
+      - name: Vendor kicad-pedal-common
+        run: bash kicad-pedal-common/scripts/vendor.sh manifest-creator
 
       - name: Build PCM archive
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          bash PCM/create_pcm_archive.sh "$VERSION"
+          bash manifest-creator/PCM/create_pcm_archive.sh "$VERSION"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
