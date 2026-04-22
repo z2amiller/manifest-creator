@@ -172,7 +172,6 @@ def _upload_pdf(base_url: str, pdf_path: str, password: str | None, slug: str, v
         resp = requests.post(url, auth=("admin", password), files={"file": (pdf_path, f, "application/pdf")})
 
     if resp.status_code == 200:
-        data = resp.json()
         print("PDF uploaded: {}/board/{}/{}/build-doc.pdf".format(base_url.rstrip("/"), slug, version))
     else:
         print("ERROR: PDF upload failed ({}) — {}".format(resp.status_code, resp.text), file=sys.stderr)
