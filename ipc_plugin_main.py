@@ -65,6 +65,18 @@ def main() -> int:
 
     try:
         return _run(board, kicad)
+    except Exception:
+        logger.exception("Manifest Creator crashed")
+        try:
+            wx.MessageBox(
+                "Manifest Creator encountered an unexpected error.\n"
+                "Check the KiCad scripting console for details.",
+                "Manifest Creator Error",
+                wx.OK | wx.ICON_ERROR,
+            )
+        except Exception:
+            pass
+        return 1
     finally:
         lock.release()
 
