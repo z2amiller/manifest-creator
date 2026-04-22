@@ -31,6 +31,7 @@ mkdir -p "$PLUGINS_DIR" "$RESOURCES_DIR"
 echo "Copy plugin source files"
 for file in "$REPO_ROOT/plugin.json" \
             "$REPO_ROOT/ipc_plugin_main.py" \
+            "$REPO_ROOT/requirements.txt" \
             "$REPO_ROOT/README.md" \
             "$REPO_ROOT/LICENSE"; do
     [ -e "$file" ] || continue
@@ -42,11 +43,6 @@ cp -rf "$REPO_ROOT/manifest_creator" "$PLUGINS_DIR/"
 
 echo "Copy kicad_pedal_common vendored package"
 cp -rf "$REPO_ROOT/kicad_pedal_common" "$PLUGINS_DIR/"
-
-echo "Copy bundled lib/ dependencies"
-if [ -d "$REPO_ROOT/lib" ]; then
-    cp -rf "$REPO_ROOT/lib" "$PLUGINS_DIR/"
-fi
 
 echo "Copy icon to resources/ (PCM Plugin Manager) and plugins/ (IPC toolbar)"
 cp -f "$REPO_ROOT/icon.png" "$RESOURCES_DIR/"
