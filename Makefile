@@ -7,6 +7,7 @@ SYNC_FILES := \
 	__init__.py \
 	board_adapter.py \
 	bom.py \
+	drill.py \
 	footprint.py \
 	kiutils_board_adapter.py \
 	plotting.py \

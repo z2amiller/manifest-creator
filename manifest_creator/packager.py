@@ -269,6 +269,25 @@ def create_manifest_zip(
         _log("Building manifest…")
         created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # Drill holes — board-space mm, normalised to the same (0,0)=top-left
+        # origin used by component positions and the SVG viewBox.
+        drill_holes: list = []
+        if adapter is not None:
+            try:
+                raw_holes = adapter.get_drill_holes()
+                for h in raw_holes:
+                    drill_holes.append({
+                        "x_mm": round(h.x_mm - pcb_min_x, 4),
+                        "y_mm": round(h.y_mm - pcb_min_y, 4),
+                        "diameter_mm": h.diameter_mm,
+                        "label": h.label,
+                        "plated": h.plated,
+                        "oval": h.oval,
+                    })
+                _log("Collected {} drill holes.".format(len(drill_holes)))
+            except Exception as exc:
+                _log("WARNING: drill hole extraction failed: {}".format(exc))
+
         manifest: Dict = {
             "schema_version": "1.0",
             "board_name": board_name,
@@ -279,6 +298,7 @@ def create_manifest_zip(
             "layers": layers_map,
             "components": components,
             "has_blurb": blurb_path is not None,
+            "drill_holes": drill_holes,
         }
 
         _log("Validating manifest against schema…")
