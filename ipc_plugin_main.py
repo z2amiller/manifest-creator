@@ -70,6 +70,7 @@ def main() -> int:
 
 
 def _run(board, kicad) -> int:
+    import threading
     import wx
 
     from kicad_pedal_common.plugin_utils import get_board_path
@@ -110,34 +111,37 @@ def _run(board, kicad) -> int:
     from manifest_creator.log_writer import LogWriter
     from manifest_creator.packager import create_manifest_zip
 
-    log_lines = []
+    log_dlg = LogDialog(None, title="Manifest Export")
 
-    def _log(msg: str) -> None:
-        log_lines.append(msg)
+    def _worker() -> None:
+        """Run the export on a background thread so the UI stays responsive."""
+        success = True
+        try:
+            with LogWriter(output_path) as writer:
 
-    try:
-        with LogWriter(output_path) as writer:
+                def _log(msg: str) -> None:
+                    log_dlg.append_log(msg)
+                    writer(msg)
 
-            def _combined(msg: str) -> None:
-                _log(msg)
-                writer(msg)
+                create_manifest_zip(
+                    board=board,
+                    board_path=board_path,
+                    output_path=output_path,
+                    version="1.0.0",
+                    kicad_cli=kicad_cli,
+                    log=_log,
+                )
+        except Exception as exc:
+            log_dlg.append_log("ERROR: {}".format(exc))
+            logger.exception("create_manifest_zip failed")
+            success = False
 
-            create_manifest_zip(
-                board=board,
-                board_path=board_path,
-                output_path=output_path,
-                version="1.0.0",
-                kicad_cli=kicad_cli,
-                log=_combined,
-            )
-    except Exception as exc:
-        log_lines.append("ERROR: {}".format(exc))
-        logger.exception("create_manifest_zip failed")
+        log_dlg.mark_done(success)
 
-    log_dlg = LogDialog(None, title="Manifest Export Log")
-    for line in log_lines:
-        log_dlg._append_and_scroll(line)
-    log_dlg.ShowModal()
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+    log_dlg.ShowModal()   # runs wx event loop; CallAfter callbacks fire here
     log_dlg.Destroy()
 
     return 0
